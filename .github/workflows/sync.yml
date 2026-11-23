@@ -1,0 +1,36 @@
+name: Daily Sync LibreTV to TVBox
+
+on:
+  schedule:
+    - cron: "0 20 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch and convert LibreTV sources
+        run: python3 scripts/convert.py
+
+      - name: Commit and push if updated
+        run: |
+          if git diff --quiet -- tvbox-desktop.json tvbox.json; then
+            echo "No changes detected."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tvbox-desktop.json tvbox.json
+          git commit -m "chore: sync tvbox sources ($(date -u +'%Y-%m-%d'))"
+          git push
